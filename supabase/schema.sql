@@ -183,15 +183,85 @@ create policy "Members can read billing"
     )
   );
 
-create policy "Allow public read events"
+create policy "Members can read events"
   on public.events
   for select
-  using (true);
+  using (
+    organization_id is null
+    or exists (
+      select 1
+      from public.organization_members members
+      where members.organization_id = events.organization_id
+        and members.user_id = auth.uid()
+    )
+  );
 
-create policy "Allow public insert events"
+create policy "Members can insert events"
   on public.events
   for insert
-  with check (true);
+  with check (
+    organization_id is null
+    or exists (
+      select 1
+      from public.organization_members members
+      where members.organization_id = events.organization_id
+        and members.user_id = auth.uid()
+    )
+  );
+
+create or replace view public.analytics_daily
+with (security_invoker = true)
+as
+select
+  organization_id,
+  store_id,
+  date_trunc('day', timestamp)::date as metric_date,
+  count(*)::bigint as total_events,
+  count(distinct session_id)::bigint as active_sessions,
+  count(*) filter (where type = 'page_view')::bigint as page_views,
+  count(*) filter (where type = 'product_view')::bigint as product_views,
+  count(*) filter (where type = 'add_to_cart')::bigint as add_to_carts,
+  count(*) filter (where type = 'checkout_started')::bigint as checkout_started,
+  count(*) filter (where type = 'purchase')::bigint as purchases,
+  coalesce(sum(value) filter (where type = 'purchase'), 0)::numeric as revenue,
+  case
+    when count(*) filter (where type = 'product_view') = 0 then 0
+    else round(
+      (count(*) filter (where type = 'purchase'))::numeric
+      / nullif((count(*) filter (where type = 'product_view'))::numeric, 0)
+      * 100,
+      2
+    )
+  end as conversion_rate
+from public.events
+group by organization_id, store_id, date_trunc('day', timestamp)::date;
+
+create or replace view public.analytics_hourly
+with (security_invoker = true)
+as
+select
+  organization_id,
+  store_id,
+  date_trunc('hour', timestamp) as metric_hour,
+  count(*)::bigint as total_events,
+  count(distinct session_id)::bigint as active_sessions,
+  count(*) filter (where type = 'page_view')::bigint as page_views,
+  count(*) filter (where type = 'product_view')::bigint as product_views,
+  count(*) filter (where type = 'add_to_cart')::bigint as add_to_carts,
+  count(*) filter (where type = 'checkout_started')::bigint as checkout_started,
+  count(*) filter (where type = 'purchase')::bigint as purchases,
+  coalesce(sum(value) filter (where type = 'purchase'), 0)::numeric as revenue,
+  case
+    when count(*) filter (where type = 'product_view') = 0 then 0
+    else round(
+      (count(*) filter (where type = 'purchase'))::numeric
+      / nullif((count(*) filter (where type = 'product_view'))::numeric, 0)
+      * 100,
+      2
+    )
+  end as conversion_rate
+from public.events
+group by organization_id, store_id, date_trunc('hour', timestamp);
 
 create or replace function public.handle_new_user()
 returns trigger
@@ -231,4 +301,15 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
 
-alter publication supabase_realtime add table public.events;
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_publication_tables
+    where pubname = 'supabase_realtime'
+      and schemaname = 'public'
+      and tablename = 'events'
+  ) then
+    alter publication supabase_realtime add table public.events;
+  end if;
+end $$;

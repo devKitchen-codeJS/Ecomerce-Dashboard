@@ -44,7 +44,7 @@ export function getKpis(events: AnalyticsEvent[]): KpiMetric[] {
       tone: "amber",
     },
     {
-      label: "Events/min",
+      label: "Events",
       value: String(events.length),
       trend: "weekly event volume",
       tone: "rose",
