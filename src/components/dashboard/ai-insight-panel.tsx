@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { BrainCircuit, Lightbulb, ShieldAlert } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -17,11 +18,11 @@ export function AiInsightPanel({ events }: AiInsightPanelProps) {
       <div className="flex items-center justify-between gap-4">
         <div>
           <h2 className="text-base font-semibold text-white">AI business pulse</h2>
-          <p className="mt-1 text-sm text-slate-500">Prepared for the upcoming OpenAI endpoint</p>
+          <p className="mt-1 text-sm text-slate-500">Powered by the /api/ai/insights endpoint</p>
         </div>
-        <Badge className="gap-1.5 text-sky-300">
+        <Badge className="gap-1.5 text-emerald-300">
           <BrainCircuit className="h-3.5 w-3.5" />
-          Draft
+          Live
         </Badge>
       </div>
 
@@ -44,9 +45,12 @@ export function AiInsightPanel({ events }: AiInsightPanelProps) {
             </p>
           </div>
         </div>
-        <button className="w-full rounded-lg bg-white px-4 py-2.5 text-sm font-semibold text-surface-900 transition hover:bg-slate-200">
+        <Link
+          href="/insights"
+          className="flex w-full items-center justify-center rounded-lg bg-white px-4 py-2.5 text-sm font-semibold text-surface-900 transition hover:bg-slate-200"
+        >
           Generate AI report
-        </button>
+        </Link>
       </div>
     </Card>
   );
