@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { AlertCircle, Database, Loader2 } from "lucide-react";
+import { AiInsightPanel } from "@/components/dashboard/ai-insight-panel";
 import { EventTypeBreakdown } from "@/components/dashboard/event-type-breakdown";
 import { FunnelChart } from "@/components/dashboard/funnel-chart";
 import { KpiCard } from "@/components/dashboard/kpi-card";
@@ -127,6 +128,12 @@ export function DashboardOverview() {
         </div>
         <div className="lg:col-span-1">
           <TopProducts events={events} />
+        </div>
+      </section>
+
+      <section className="grid gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-1">
+          <AiInsightPanel events={events} />
         </div>
       </section>
     </div>
